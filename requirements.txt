@@ -1,0 +1,7 @@
+streamlit
+openai
+pandas
+gTTS
+SpeechRecognition
+streamlit-mic-recorder
+pydub
