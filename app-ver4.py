@@ -22,6 +22,13 @@ client = OpenAI(
 RESULT_FILE = "student_results.csv"
 
 # ----------------------------
+# Session Memory
+# ----------------------------
+
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+
+# ----------------------------
 # Helper Functions
 # ----------------------------
 
@@ -134,14 +141,13 @@ elif page == "AI Tutor":
 
     st.title("📚 AI Tutor")
 
-    subject = st.selectbox(
-        "Choose Subject",
-        ["Maths","Science","English","Social Science"]
-    )
+    st.write("Ask anything and continue the conversation with your tutor.")
 
-    topic = st.text_input("Enter Topic")
+    question = st.text_input("Ask your tutor")
 
-    question = st.text_area("Ask your tutor")
+    # ----------------------
+    # Voice Input
+    # ----------------------
 
     st.subheader("🎤 Speak Instead")
 
@@ -159,31 +165,37 @@ elif page == "AI Tutor":
 
         question = voice_text
 
+    # ----------------------
+    # Ask Tutor
+    # ----------------------
+
     if st.button("Ask Tutor"):
 
-        prompt = f"""
-You are a friendly ICSE class 5 tutor.
-
-Subject: {subject}
-Topic: {topic}
-
-Question: {question}
-
-Explain clearly for an 11 year old.
-Give examples.
-Ask one follow-up question.
-"""
+        st.session_state.chat_history.append({"role":"user","content":question})
 
         response = client.chat.completions.create(
             model="llama-3.1-8b-instant",
-            messages=[{"role":"user","content":prompt}]
+            messages=[
+                {"role":"system","content":"You are a friendly tutor for an 11 year old student."}
+            ] + st.session_state.chat_history
         )
 
         answer = response.choices[0].message.content
 
-        st.write(answer)
+        st.session_state.chat_history.append({"role":"assistant","content":answer})
 
-        speak(answer)
+    # ----------------------
+    # Display Chat
+    # ----------------------
+
+    for msg in st.session_state.chat_history:
+
+        if msg["role"] == "user":
+            st.write("🧑 **Student:**", msg["content"])
+
+        else:
+            st.write("👩‍🏫 **Tutor:**", msg["content"])
+            speak(msg["content"])
 
 
 # ----------------------------
@@ -301,5 +313,6 @@ Return ONLY JSON:
                     st.write("Your answer:", s)
                     st.write("Correct answer:", c)
                     st.write("---")
+
             else:
                 st.success("Perfect Score! 🎉")
